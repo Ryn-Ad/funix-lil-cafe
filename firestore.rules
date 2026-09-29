@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function role() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Ryn, Zac, Vel — one doc per admin, created by hand in the console.
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow write: if false; // edit roles by hand in the console
+    }
+
+    // Menu items: anyone can read, only the relevant admin (or owner) can write.
+    match /saladItems/{itemId} {
+      allow read: if true;
+      allow write: if isSignedIn() && role() in ['owner', 'salad_admin'];
+    }
+    match /coffeeItems/{itemId} {
+      allow read: if true;
+      allow write: if isSignedIn() && role() in ['owner', 'coffee_admin'];
+    }
+
+    // Salad Corner open/close + timer.
+    match /settings/saladCorner {
+      allow read: if true;
+      allow write: if isSignedIn() && role() in ['owner', 'salad_admin'];
+    }
+
+    // Orders: anyone (even a customer with no account) can create one,
+    // but only the matching admin/owner can read the list or edit it
+    // (e.g. to flip the paid switch).
+    match /saladOrders/{orderId} {
+      allow create: if true;
+      allow read, update, delete: if isSignedIn() && role() in ['owner', 'salad_admin'];
+    }
+    match /coffeeOrders/{orderId} {
+      allow create: if true;
+      allow read, update, delete: if isSignedIn() && role() in ['owner', 'coffee_admin'];
+    }
+
+    // Ryn's private coffee recipes — never exposed to the Coffee Corner.
+    match /coffeeRecipes/{recipeId} {
+      allow read, write: if isSignedIn() && role() == 'owner';
+    }
+  }
+}

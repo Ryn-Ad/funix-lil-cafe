@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #1A1B1E;
+  --color-bg-soft: #2A2B2F;
+  --color-bg-card: #232428;
+  --color-accent: #FF6400;
+  --color-accent-soft: #FF640026;
+  --color-text: #FFFFFF;
+  --color-muted: #9A9AA0;
+  --color-border: #34353A;
+  --color-success: #3BAA5C;
+  --color-danger: #FF6B6B;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+:root.light {
+  --color-bg: #F6F4F1;
+  --color-bg-soft: #FFFFFF;
+  --color-bg-card: #FFFFFF;
+  --color-accent: #FF6400;
+  --color-accent-soft: #FF640014;
+  --color-text: #1A1B1E;
+  --color-muted: #6E6D72;
+  --color-border: #E7E3DC;
+  --color-success: #1E8E44;
+  --color-danger: #C9463D;
+}
+
+html {
+  color-scheme: dark;
+}
+html.light {
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Reusable card + pill primitives so components stay short */
+@layer components {
+  .card {
+    background-color: var(--color-bg-soft);
+    border: 1px solid var(--color-border);
+    border-radius: 1.25rem;
+  }
+  .pill {
+    border-radius: 999px;
+  }
+  .btn-primary {
+    background-color: var(--color-accent);
+    color: #FFFFFF;
+    border-radius: 0.85rem;
+    font-weight: 500;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  .btn-primary:active {
+    transform: scale(0.97);
+  }
+  .btn-outline {
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
+    border-radius: 0.85rem;
+    font-weight: 500;
+    background: transparent;
+  }
+  .input-field {
+    background-color: var(--color-bg-soft);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    border-radius: 0.85rem;
+  }
+  .input-field::placeholder {
+    color: var(--color-muted);
+  }
+}
