@@ -1,6 +1,19 @@
 import { useState } from 'react'
 import { useUser } from '../context/UserContext'
 
+function Logo() {
+  const [hidden, setHidden] = useState(false)
+  if (hidden) return null
+  return (
+    <img
+      src="/images/logo.png"
+      alt=""
+      onError={() => setHidden(true)}
+      className="w-16 h-16 object-contain mx-auto mb-1"
+    />
+  )
+}
+
 export default function NameGate() {
   const { loginAsCustomer, loginAsAdmin } = useUser()
   const [mode, setMode] = useState('customer') // 'customer' | 'admin'
@@ -43,11 +56,12 @@ export default function NameGate() {
     >
       <div className="w-full max-w-sm flex flex-col items-center gap-5 text-center">
         <div>
+          <Logo />
           <h1 className="text-2xl font-semibold" style={{ color: 'var(--color-accent)' }}>
             Funix Lil-Cafe
           </h1>
           <p className="mt-1 text-sm" style={{ color: 'var(--color-muted)' }}>
-            {mode === 'customer' ? 'Order ahead with Ryn, Zack & Vel' : 'Admin Sign-in'}
+            {mode === 'customer' ? 'Order ahead with Ryn, Zack & Vel' : 'Admin Sign in'}
           </p>
         </div>
 
@@ -105,7 +119,7 @@ export default function NameGate() {
           className="text-xs underline"
           style={{ color: 'var(--color-muted)' }}
         >
-          {mode === 'customer' ? 'Ryn, Zac or Vel? Sign in here' : 'Not an admin? Enter your name instead'}
+          {mode === 'customer' ? 'Ryn, Zack or Vel? Sign in here' : 'Not an admin? Enter your name instead'}
         </button>
       </div>
     </div>

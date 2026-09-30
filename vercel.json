@@ -1,3 +1,7 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
+  "crons": [
+    { "path": "/api/cron/open-salad", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/close-salad", "schedule": "0 13 * * *" }
+  ]
 }

@@ -2,6 +2,7 @@ const OPTIONS = [
   { key: 'milk', label: 'Milk', delta: 3000 },
   { key: 'chocolate', label: 'Chocolate', delta: 1000 },
   { key: 'foamy', label: 'Foamy', delta: 0 },
+    { key: 'condensedMilk', label: 'Condensed Milk', delta: 2000 },
 ]
 
 export default function CoffeeOptions({ values, onToggle }) {

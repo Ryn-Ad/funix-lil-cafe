@@ -1,4 +1,4 @@
-export const COFFEE_OPTION_DELTAS = { milk: 3000, chocolate: 1000, foamy: 0 }
+export const COFFEE_OPTION_DELTAS = { milk: 3000, chocolate: 1000, foamy: 0, condensedMilk: 2000 }
 
 // "stock: null" means unlimited. "image: null" falls back to the icon tile
 // in ItemCard until you add a real photo (see README > Adding item photos).

@@ -9,20 +9,38 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // A public, narrowly-scoped exception used only for stock decrements:
+    // lets anyone (including a signed-out customer placing an order)
+    // decrease — never increase or otherwise touch — an item's stock
+    // field, and nothing else on the document. This is what makes
+    // automatic stock decrementing on order submission possible without
+    // requiring every customer to have an account.
+    function isStockOnlyDecrease() {
+      let before = resource.data;
+      let after = request.resource.data;
+      return after.diff(before).affectedKeys().hasOnly(['stock'])
+        && after.stock is number
+        && after.stock >= 0
+        && after.stock <= before.stock;
+    }
+
     // Ryn, Zac, Vel — one doc per admin, created by hand in the console.
     match /users/{uid} {
       allow read: if isSignedIn();
       allow write: if false; // edit roles by hand in the console
     }
 
-    // Menu items: anyone can read, only the relevant admin (or owner) can write.
+    // Menu items: anyone can read. Admins can create/edit/delete freely;
+    // anyone can additionally make a stock-only decrease (see above).
     match /saladItems/{itemId} {
       allow read: if true;
-      allow write: if isSignedIn() && role() in ['owner', 'salad_admin'];
+      allow create, delete: if isSignedIn() && role() in ['owner', 'salad_admin'];
+      allow update: if (isSignedIn() && role() in ['owner', 'salad_admin']) || isStockOnlyDecrease();
     }
     match /coffeeItems/{itemId} {
       allow read: if true;
-      allow write: if isSignedIn() && role() in ['owner', 'coffee_admin'];
+      allow create, delete: if isSignedIn() && role() in ['owner', 'coffee_admin'];
+      allow update: if (isSignedIn() && role() in ['owner', 'coffee_admin']) || isStockOnlyDecrease();
     }
 
     // Salad Corner open/close + timer.

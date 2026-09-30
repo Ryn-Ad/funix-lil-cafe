@@ -13,7 +13,7 @@ import { useCollection } from '../services/localStore'
 const TILE_COLORS = ['#FF6400', '#7C6FF0', '#2FB6A3', '#E85D75', '#FF6400']
 
 function emptyOptions() {
-  return { milk: false, chocolate: false, foamy: false }
+  return { milk: false, chocolate: false, foamy: false, condensedMilk: false }
 }
 
 function isOutOfStock(item) {

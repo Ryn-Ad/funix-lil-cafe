@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { ImageOff, Trash2 } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useUser } from '../context/UserContext'
-import { useCollection } from '../services/localStore'
+import { useCollection, decrementStock } from '../services/localStore'
+import ImageLightbox from '../components/ImageLightbox'
 
 function QrisImage({ path, name }) {
   const [errored, setErrored] = useState(false)
+  const [zoomed, setZoomed] = useState(false)
 
   if (errored) {
     return (
@@ -20,13 +22,31 @@ function QrisImage({ path, name }) {
   }
 
   return (
-    <img
-      src={path}
-      alt={`${name}'s QRIS code`}
-      onError={() => setErrored(true)}
-      className="w-40 h-40 object-contain mx-auto mb-3 rounded-xl"
-      style={{ backgroundColor: '#fff', padding: '8px' }}
-    />
+    <>
+      <img
+        src={path}
+        alt={`${name}'s QRIS code — tap to enlarge`}
+        onError={() => setErrored(true)}
+        onClick={() => setZoomed(true)}
+        className="w-40 h-40 object-contain mx-auto mb-3 rounded-xl cursor-zoom-in"
+        style={{ backgroundColor: '#fff', padding: '8px' }}
+      />
+      {zoomed && (
+        <ImageLightbox src={path} alt={`${name}'s QRIS code`} onClose={() => setZoomed(false)} />
+      )}
+    </>
+  )
+}
+
+function TransferLines({ banks }) {
+  return (
+    <div className="flex flex-col gap-1">
+      {banks.map(({ bank, number }) => (
+        <p key={bank} className="text-xs" style={{ color: 'var(--color-muted)' }}>
+          {bank}: {number}
+        </p>
+      ))}
+    </div>
   )
 }
 
@@ -41,9 +61,13 @@ function Section({ title, lines, onRemove, onSubmit, submitted, emptyText, payme
           Order sent &mdash; Pay {payment.name} below
         </p>
         {payment.qris && <QrisImage path={payment.qrisPath} name={payment.name} />}
-        <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-          Transfer to {payment.name} &mdash; {payment.number}
-        </p>
+        {payment.banks ? (
+          <TransferLines banks={payment.banks} />
+        ) : (
+          <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+            transfer to {payment.name} &mdash; {payment.number}
+          </p>
+        )}
       </div>
     )
   }
@@ -111,35 +135,45 @@ export default function Cart() {
   const { name } = useUser()
   const saladOrders = useCollection('saladOrders')
   const coffeeOrders = useCollection('coffeeOrders')
-  const saladItemsCol = useCollection('saladItems')
-  const coffeeItemsCol = useCollection('coffeeItems')
   const [submittedSalad, setSubmittedSalad] = useState(false)
   const [submittedCoffee, setSubmittedCoffee] = useState(false)
 
   // Each line in the cart is one unit of an item, so ordering decrements
   // that item's stock by one per line — only for items that track stock
   // at all (stock === null means unlimited, see menuData.js).
-  const decrementStock = (lines, itemsCol) => {
+  const runStockDecrements = (collectionKey, lines) => {
     lines.forEach((line) => {
-      const item = itemsCol.items.find((i) => i.id === line.itemId)
-      if (item && typeof item.stock === 'number') {
-        itemsCol.update(item.id, { stock: Math.max(0, item.stock - 1) })
-      }
+      decrementStock(collectionKey, line.itemId).catch((err) =>
+        console.error(`Stock update failed for ${line.itemId}:`, err)
+      )
     })
   }
 
   const submitSalad = () => {
     const total = saladCart.reduce((sum, l) => sum + l.price, 0)
     saladOrders.add({ customerName: name, items: saladCart, paid: false, submittedAt: Date.now(), total })
-    decrementStock(saladCart, saladItemsCol)
+    runStockDecrements('saladItems', saladCart)
     clearSaladCart()
     setSubmittedSalad(true)
   }
 
   const submitCoffee = () => {
     const total = coffeeCart.reduce((sum, l) => sum + l.price, 0)
-    coffeeOrders.add({ customerName: name, items: coffeeCart, paid: false, submittedAt: Date.now(), total })
-    decrementStock(coffeeCart, coffeeItemsCol)
+    const order = { customerName: name, items: coffeeCart, paid: false, submittedAt: Date.now(), total }
+    coffeeOrders.add(order)
+    runStockDecrements('coffeeItems', coffeeCart)
+
+    // Fire-and-forget: Vel and Ryn get a Discord DM for every coffee
+    // order. If this fails (offline, Discord hiccup), the order itself
+    // is already safely saved above, so we only log it, never block or
+    // warn the customer. Only works once deployed to Vercel — see
+    // DISCORD_SETUP.md for local testing with `vercel dev`.
+    fetch('/api/notify-coffee-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+    }).catch((err) => console.error('Discord notify failed:', err))
+
     clearCoffeeCart()
     setSubmittedCoffee(true)
   }
@@ -163,7 +197,15 @@ export default function Cart() {
         onSubmit={submitCoffee}
         submitted={submittedCoffee}
         emptyText="No drinks yet — head to the Coffee Corner to add some."
-        payment={{ qris: false, name: 'Vel', number: 'MANDIRI: 1300028849340' }}
+        payment={{
+          qris: false,
+          name: 'Vel',
+          banks: [
+            { bank: 'BANK BCA', number: '7940423851' },
+            { bank: 'BANK JAGO', number: '106747962160' },
+            { bank: 'BANK MANDIRI', number: '1300028849340' },
+          ],
+        }}
       />
     </div>
   )

@@ -14,6 +14,7 @@ import {
   setDoc,
   getDocs,
   onSnapshot,
+  runTransaction,
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
 
@@ -88,4 +89,15 @@ export async function seedIfEmpty(key, seedData) {
   const snapshot = await getDocs(collection(db, key))
   if (!snapshot.empty) return
   await Promise.all(seedData.map(({ id, ...rest }) => setDoc(doc(db, key, id), rest)))
+}
+
+export async function decrementStock(collectionKey, itemId) {
+  const ref = doc(db, collectionKey, itemId)
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) return
+    const current = snap.data().stock
+    if (typeof current !== 'number') return
+    tx.update(ref, { stock: Math.max(0, current - 1) })
+  })
 }
