@@ -11,9 +11,6 @@ import AdminSalad from './pages/AdminSalad'
 import AdminCoffee from './pages/AdminCoffee'
 import CoffeeRecipes from './pages/CoffeeRecipes'
 import Profit from './pages/Profit'
-import { Route } from 'react-router-dom'
-import { RequireRole } from '../../../../../../Temp/RAR_Temps/Rar$DIa8964.12206/App'
-import Profit from './pages/Profit'
 
 function RequireRole({ allow, role, children }) {
   if (!allow.includes(role)) return <Navigate to="/" replace />
