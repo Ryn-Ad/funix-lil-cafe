@@ -12,8 +12,6 @@ import { useCart } from '../context/CartContext'
 import { useUser } from '../context/UserContext'
 import { useCollection } from '../services/localStore'
 import { useCornerStatus } from '../hooks/useCornerStatus'
-import { useState } from 'react'
-import { GRID, isOutOfStock, TILE_COLORS } from '../../../../../../../Temp/RAR_Temps/Rar$DIa8964.21390/CoffeeCorner'
 
 const TILE_COLORS = ['#FF6400', '#7C6FF0', '#2FB6A3', '#E85D75', '#FF6400']
 const GRID = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'

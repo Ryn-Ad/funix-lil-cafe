@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Salad, Coffee, ClipboardList, BookOpen, TrendingUp } from 'lucide-react'
 import { useUser } from '../context/UserContext'
-import { Link } from 'react-router-dom'
 
 function HubCard({ to, icon: Icon, title, subtitle }) {
   return (

@@ -12,8 +12,6 @@ import { useUser } from '../context/UserContext'
 import { useCollection } from '../services/localStore'
 import { useCornerStatus } from '../hooks/useCornerStatus'
 import { DEFAULT_SAUCES } from '../data/menuData'
-import { useState } from 'react'
-import { isOutOfStock } from '../../../../../../../Temp/RAR_Temps/Rar$DIa8964.19869/SaladCorner'
 
 const TILE_COLORS = ['#FF6400', '#7C6FF0', '#2FB6A3', '#E85D75']
 const GRID = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'

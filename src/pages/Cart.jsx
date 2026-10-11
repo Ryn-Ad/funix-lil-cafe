@@ -4,8 +4,6 @@ import { useCart } from '../context/CartContext'
 import { useUser } from '../context/UserContext'
 import { submitOrder } from '../services/orders'
 import ImageLightbox from '../components/ImageLightbox'
-import { COFFEE_PAYMENT, lineDetail, SALAD_PAYMENT, Section } from '../../../../../../../Temp/RAR_Temps/Rar$DIa8964.37386/Cart'
-import { useState } from 'react'
 
 function QrisImage({ path, name }) {
   const [errored, setErrored] = useState(false)
