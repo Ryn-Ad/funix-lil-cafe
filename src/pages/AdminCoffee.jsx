@@ -2,6 +2,8 @@ import { Trash2 } from 'lucide-react'
 import { useCollection } from '../services/localStore'
 import { groupOrdersByDate } from '../utils/orderGrouping'
 import SectionDivider from '../components/SectionDivider'
+import CornerStatusCard from '../components/CornerStatusCard'
+import { optionNames } from '../utils/describeLine'
 
 function formatTime(ts) {
   return new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -15,6 +17,7 @@ export default function AdminCoffee() {
   return (
     <div className="max-w-3xl mx-auto px-4 md:px-8 py-6">
       <h1 className="text-xl font-semibold mb-4">Coffee Corner &mdash; Admin</h1>
+      <CornerStatusCard corner="coffee" />
       <h2 className="text-sm font-medium mb-3">Orders ({orders.items.length})</h2>
       {dateGroups.length === 0 && (
         <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
@@ -30,7 +33,12 @@ export default function AdminCoffee() {
                 <div>
                   <p className="text-sm">{order.customerName}</p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-                    {order.items.map((it) => it.name).join(', ')}
+                    {order.items
+                      .map((it) => {
+                        const extras = optionNames(it.options)
+                        return `${it.name}${extras.length ? ` (${extras.join(', ')})` : ''}`
+                      })
+                      .join(', ')}
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
                     Rp {(order.total ?? 0).toLocaleString('id-ID')} &middot; {formatTime(order.submittedAt)}

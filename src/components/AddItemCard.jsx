@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react'
 
-export default function AddItemCard({ onClick }) {
+export default function AddItemCard({ onClick, label = 'add item' }) {
   return (
     <button
       onClick={onClick}
@@ -8,7 +8,7 @@ export default function AddItemCard({ onClick }) {
       style={{ border: '1px dashed var(--color-border)', color: 'var(--color-muted)' }}
     >
       <Plus size={20} />
-      Add Item
+      {label}
     </button>
   )
 }

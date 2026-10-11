@@ -1,28 +1,20 @@
-// Triggered daily by Vercel Cron (see vercel.json) at 20:00 Asia/Jakarta
-// time. Closes the Salad Corner and DMs the day's order list to Zac and
-// Ryn on Discord — so Zac can start prepping without opening the app.
+// Runs Sunday–Thursday at 20:00 Asia/Jakarta (see vercel.json). The
+// corner itself closes by the clock (shared/schedule.js) — this job only
+// DMs the day's order list to Zac and Ryn so Zac can start prepping.
 import { adminDb } from '../_lib/firebaseAdmin.js'
 import { isAuthorizedCron } from '../_lib/cronAuth.js'
 import { sendDiscordDMs } from '../_lib/discord.js'
-
-const RECIPIENTS = [process.env.DISCORD_ZAC_ID, process.env.DISCORD_RYN_ID]
-
-function startOfTodayMs() {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d.getTime()
-}
+import { dayStartMs } from '../../shared/schedule.js'
+import { formatRp } from '../../shared/finance.js'
 
 function formatOrders(orders) {
   if (orders.length === 0) return 'No salad orders came in today.'
   const lines = orders.map((o) => {
-    const items = (o.items || [])
-      .map((it) => `${it.name}${it.sauce ? ` (${it.sauce})` : ''}`)
-      .join(', ')
-    return `• ${o.customerName}: ${items} — Rp ${Number(o.total || 0).toLocaleString('id-ID')}`
+    const items = (o.items || []).map((it) => `${it.name}${it.sauce ? ` (${it.sauce})` : ''}`).join(', ')
+    return `• ${o.customerName}: ${items} — ${formatRp(o.total)}`
   })
   const grandTotal = orders.reduce((sum, o) => sum + Number(o.total || 0), 0)
-  return `${lines.join('\n')}\n\nTotal: Rp ${grandTotal.toLocaleString('id-ID')} (${orders.length} order${orders.length === 1 ? '' : 's'})`
+  return `${lines.join('\n')}\n\nTotal: ${formatRp(grandTotal)} (${orders.length} order${orders.length === 1 ? '' : 's'})`
 }
 
 export default async function handler(req, res) {
@@ -32,14 +24,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    await adminDb.doc('settings/saladCorner').set({ isOpen: false }, { merge: true })
+    const start = dayStartMs(Date.now())
+    const snapshot = await adminDb.collection('saladOrders').where('submittedAt', '>=', start).get()
+    const orders = snapshot.docs.map((d) => d.data()).sort((a, b) => a.submittedAt - b.submittedAt)
 
-    const snapshot = await adminDb.collection('saladOrders').where('submittedAt', '>=', startOfTodayMs()).get()
-    const orders = snapshot.docs.map((d) => d.data())
-
-    const message = `**Salad Corner closed for today**\n${formatOrders(orders)}`
-    await sendDiscordDMs(RECIPIENTS, message)
-
+    await sendDiscordDMs(
+      [process.env.DISCORD_ZAC_ID, process.env.DISCORD_RYN_ID],
+      `**Salad Corner closed for today**\n${formatOrders(orders)}`
+    )
     res.status(200).json({ ok: true, orderCount: orders.length })
   } catch (err) {
     console.error('close-salad cron failed:', err)

@@ -40,6 +40,11 @@ export default function NavBar() {
           </Link>
         )}
         {role === 'owner' && (
+          <Link to="/profit" style={linkStyle('/profit')}>
+            Profit
+          </Link>
+        )}
+        {role === 'owner' && (
           <Link to="/recipes" style={linkStyle('/recipes')}>
             Recipes
           </Link>

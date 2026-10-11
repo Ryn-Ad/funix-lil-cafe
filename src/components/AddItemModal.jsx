@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import Modal from './Modal'
 
-const emptySauces = ['', '', '']
-
 function fieldsFrom(initialValue, itemType) {
   return {
     name: initialValue?.name || '',
@@ -11,10 +9,12 @@ function fieldsFrom(initialValue, itemType) {
     image: initialValue?.image || '',
     category: initialValue?.category || (itemType === 'salad' ? 'salad' : 'coffee'),
     hasOptions: initialValue ? !!initialValue.hasOptions : itemType === 'coffee',
-    sauces: initialValue?.sauces || emptySauces,
   }
 }
 
+// Add/edit form for menu items. Sauces and coffee options are no longer
+// typed in per item — they are shared lists managed with the "add sauce" /
+// "add option" buttons on each corner page.
 export default function AddItemModal({ open, onClose, onSubmit, itemType, initialValue }) {
   const isEdit = !!initialValue
   const [name, setName] = useState('')
@@ -23,11 +23,8 @@ export default function AddItemModal({ open, onClose, onSubmit, itemType, initia
   const [image, setImage] = useState('')
   const [category, setCategory] = useState('salad')
   const [hasOptions, setHasOptions] = useState(false)
-  const [sauces, setSauces] = useState(emptySauces)
   const [error, setError] = useState('')
 
-  // Re-populate the form every time the modal opens — with the item
-  // being edited, or blank defaults for a new one.
   useEffect(() => {
     if (open) {
       const f = fieldsFrom(initialValue, itemType)
@@ -37,20 +34,14 @@ export default function AddItemModal({ open, onClose, onSubmit, itemType, initia
       setImage(f.image)
       setCategory(f.category)
       setHasOptions(f.hasOptions)
-      setSauces(f.sauces)
       setError('')
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialValue, itemType])
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!name.trim() || !price) {
+    if (!name.trim() || price === '') {
       setError('Name and price are required')
-      return
-    }
-    if (itemType === 'salad' && category === 'salad' && sauces.some((s) => !s.trim())) {
-      setError('Fill in all 3 sauce options, or switch category to snack')
       return
     }
 
@@ -61,13 +52,7 @@ export default function AddItemModal({ open, onClose, onSubmit, itemType, initia
       image: image.trim() || null,
       category,
     }
-
-    if (itemType === 'salad') {
-      onSubmit({ ...base, sauces: category === 'salad' ? sauces.map((s) => s.trim()) : null })
-    } else {
-      onSubmit({ ...base, hasOptions })
-    }
-
+    onSubmit(itemType === 'salad' ? base : { ...base, hasOptions })
     onClose()
   }
 
@@ -78,7 +63,7 @@ export default function AddItemModal({ open, onClose, onSubmit, itemType, initia
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input
           className="input-field px-3 py-2 text-sm"
-          placeholder="Item Name"
+          placeholder="item name"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
@@ -86,32 +71,28 @@ export default function AddItemModal({ open, onClose, onSubmit, itemType, initia
           <input
             className="input-field px-3 py-2 text-sm flex-1"
             type="number"
-            placeholder="Price (Rp)"
+            placeholder="price (Rp)"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
           />
           <input
             className="input-field px-3 py-2 text-sm flex-1"
             type="number"
-            placeholder="Stock (blank = unlimited)"
+            placeholder="stock (blank = unlimited)"
             value={stock}
             onChange={(e) => setStock(e.target.value)}
           />
         </div>
-        <select
-          className="input-field px-3 py-2 text-sm"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-        >
+        <select className="input-field px-3 py-2 text-sm" value={category} onChange={(e) => setCategory(e.target.value)}>
           {itemType === 'salad' ? (
             <>
-              <option value="salad">Salad (Needs 3 sauce options)</option>
-              <option value="snack">Snack (No sauces)</option>
+              <option value="salad">salad (customer picks a sauce)</option>
+              <option value="snack">snack (no sauce)</option>
             </>
           ) : (
             <>
-              <option value="coffee">Coffee</option>
-              <option value="non-coffee">Non-coffee</option>
+              <option value="coffee">coffee</option>
+              <option value="non-coffee">non-coffee</option>
             </>
           )}
         </select>
@@ -119,25 +100,8 @@ export default function AddItemModal({ open, onClose, onSubmit, itemType, initia
         {itemType === 'coffee' && (
           <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-muted)' }}>
             <input type="checkbox" checked={hasOptions} onChange={(e) => setHasOptions(e.target.checked)} />
-            Has Milk / Chocolate / Foam options
+            customers can add options (milk, chocolate, ...)
           </label>
-        )}
-
-        {itemType === 'salad' && category === 'salad' && (
-          <div className="flex flex-col gap-2">
-            <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-              3 Sauce options
-            </p>
-            {sauces.map((sauce, i) => (
-              <input
-                key={i}
-                className="input-field px-3 py-2 text-sm"
-                placeholder={`sauce ${i + 1}`}
-                value={sauce}
-                onChange={(e) => setSauces((s) => s.map((v, idx) => (idx === i ? e.target.value : v)))}
-              />
-            ))}
-          </div>
         )}
 
         <input
@@ -154,7 +118,7 @@ export default function AddItemModal({ open, onClose, onSubmit, itemType, initia
         )}
 
         <button type="submit" className="btn-primary py-2.5 text-sm mt-1">
-          {isEdit ? 'Save Changes' : 'Add Item'}
+          {isEdit ? 'save changes' : 'add item'}
         </button>
       </form>
     </Modal>

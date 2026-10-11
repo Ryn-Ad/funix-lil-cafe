@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { ImageOff, Trash2 } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { useUser } from '../context/UserContext'
-import { useCollection, decrementStock } from '../services/localStore'
+import { submitOrder } from '../services/orders'
 import ImageLightbox from '../components/ImageLightbox'
+import { COFFEE_PAYMENT, lineDetail, SALAD_PAYMENT, Section } from '../../../../../../../Temp/RAR_Temps/Rar$DIa8964.37386/Cart'
+import { useState } from 'react'
 
 function QrisImage({ path, name }) {
   const [errored, setErrored] = useState(false)
@@ -50,6 +52,12 @@ function TransferLines({ banks }) {
   )
 }
 
+function lineDetail(line) {
+  if (line.sauce) return `${line.sauce} sauce`
+  if (line.optionNames) return line.optionNames.length ? line.optionNames.join(', ') : 'No extras'
+  return null
+}
+
 function Section({ title, lines, onRemove, onSubmit, submitted, emptyText, payment }) {
   const total = lines.reduce((sum, l) => sum + l.price, 0)
 
@@ -60,14 +68,9 @@ function Section({ title, lines, onRemove, onSubmit, submitted, emptyText, payme
         <p className="text-xs mb-4" style={{ color: 'var(--color-success)' }}>
           Order sent &mdash; Pay {payment.name} below
         </p>
+        <p className="text-sm font-medium mb-4">Total to pay: Rp {paidTotal.toLocaleString('id-ID')}</p>
         {payment.qris && <QrisImage path={payment.qrisPath} name={payment.name} />}
-        {payment.banks ? (
-          <TransferLines banks={payment.banks} />
-        ) : (
-          <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-            transfer to {payment.name} &mdash; {payment.number}
-          </p>
-        )}
+        <TransferLines banks={payment.banks} />
       </div>
     )
   }
@@ -91,23 +94,15 @@ function Section({ title, lines, onRemove, onSubmit, submitted, emptyText, payme
           <div key={line.id} className="flex items-center justify-between text-sm">
             <div>
               <p>{line.name}</p>
-              {line.sauce && (
+              {lineDetail(line) && (
                 <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                  {line.sauce} sauce
-                </p>
-              )}
-              {line.options && (
-                <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                  {Object.entries(line.options)
-                    .filter(([, v]) => v)
-                    .map(([k]) => k)
-                    .join(', ') || 'No Extras'}
+                  {lineDetail(line)}
                 </p>
               )}
             </div>
             <div className="flex items-center gap-3">
               <span>Rp {line.price.toLocaleString('id-ID')}</span>
-              <button onClick={() => onRemove(line.id)} aria-label="Remove Item" style={{ color: 'var(--color-muted)' }}>
+              <button onClick={() => onRemove(line.id)} aria-label="Remove item" style={{ color: 'var(--color-muted)' }}>
                 <Trash2 size={14} />
               </button>
             </div>
@@ -123,60 +118,62 @@ function Section({ title, lines, onRemove, onSubmit, submitted, emptyText, payme
           Rp {total.toLocaleString('id-ID')}
         </span>
       </div>
-      <button onClick={onSubmit} className="btn-primary w-full py-3 text-sm">
-        Submit Order
+      {error && (
+        <p className="text-xs mb-3" style={{ color: 'var(--color-danger)' }}>
+          {error}
+        </p>
+      )}
+      <button onClick={onSubmit} disabled={submitting} className="btn-primary w-full py-3 text-sm">
+        {submitting ? 'Sending…' : 'Submit Order'}
       </button>
     </div>
   )
 }
 
+const SALAD_PAYMENT = {
+  qris: true,
+  qrisPath: '/images/payment/qris-zac.png',
+  name: 'Zack',
+  banks: [{ bank: 'BANK MANDIRI', number: '1300028849506' }],
+}
+const COFFEE_PAYMENT = {
+  qris: true,
+  qrisPath: '/images/payment/qris-vel.png',
+  name: 'Vel',
+  banks: [
+    { bank: 'BANK BCA', number: '7940423851' },
+    { bank: 'BANK JAGO', number: '106747962160' },
+    { bank: 'BANK MANDIRI', number: '1300028849340' },
+  ],
+}
+
 export default function Cart() {
   const { saladCart, coffeeCart, removeSaladLine, removeCoffeeLine, clearSaladCart, clearCoffeeCart } = useCart()
   const { name } = useUser()
-  const saladOrders = useCollection('saladOrders')
-  const coffeeOrders = useCollection('coffeeOrders')
-  const [submittedSalad, setSubmittedSalad] = useState(false)
-  const [submittedCoffee, setSubmittedCoffee] = useState(false)
+  const [state, setState] = useState({
+    salad: { submitting: false, error: '', total: null },
+    coffee: { submitting: false, error: '', total: null },
+  })
 
-  // Each line in the cart is one unit of an item, so ordering decrements
-  // that item's stock by one per line — only for items that track stock
-  // at all (stock === null means unlimited, see menuData.js).
-  const runStockDecrements = (collectionKey, lines) => {
-    lines.forEach((line) => {
-      decrementStock(collectionKey, line.itemId).catch((err) =>
-        console.error(`Stock update failed for ${line.itemId}:`, err)
-      )
-    })
+  const patch = (corner, changes) => setState((s) => ({ ...s, [corner]: { ...s[corner], ...changes } }))
+
+  // The server checks opening hours, prices every line from the menu,
+  // checks stock and saves the order — we only say what was picked.
+  const send = async (corner, lines, clear) => {
+    patch(corner, { submitting: true, error: '' })
+    try {
+      const result = await submitOrder({ corner, customerName: name, lines })
+      clear()
+      patch(corner, { submitting: false, total: result.total })
+    } catch (err) {
+      patch(corner, { submitting: false, error: err.message })
+    }
   }
 
-  const submitSalad = () => {
-    const total = saladCart.reduce((sum, l) => sum + l.price, 0)
-    saladOrders.add({ customerName: name, items: saladCart, paid: false, submittedAt: Date.now(), total })
-    runStockDecrements('saladItems', saladCart)
-    clearSaladCart()
-    setSubmittedSalad(true)
-  }
-
-  const submitCoffee = () => {
-    const total = coffeeCart.reduce((sum, l) => sum + l.price, 0)
-    const order = { customerName: name, items: coffeeCart, paid: false, submittedAt: Date.now(), total }
-    coffeeOrders.add(order)
-    runStockDecrements('coffeeItems', coffeeCart)
-
-    // Fire-and-forget: Vel and Ryn get a Discord DM for every coffee
-    // order. If this fails (offline, Discord hiccup), the order itself
-    // is already safely saved above, so we only log it, never block or
-    // warn the customer. Only works once deployed to Vercel — see
-    // DISCORD_SETUP.md for local testing with `vercel dev`.
-    fetch('/api/notify-coffee-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(order),
-    }).catch((err) => console.error('Discord notify failed:', err))
-
-    clearCoffeeCart()
-    setSubmittedCoffee(true)
-  }
+  const submitSalad = () =>
+    send('salad', saladCart.map((l) => ({ itemId: l.itemId, sauceId: l.sauceId })), clearSaladCart)
+  const submitCoffee = () =>
+    send('coffee', coffeeCart.map((l) => ({ itemId: l.itemId, optionIds: l.optionIds })), clearCoffeeCart)
 
   return (
     <div className="max-w-2xl mx-auto px-4 md:px-8 py-6 flex flex-col gap-4">
@@ -186,26 +183,24 @@ export default function Cart() {
         lines={saladCart}
         onRemove={removeSaladLine}
         onSubmit={submitSalad}
-        submitted={submittedSalad}
+        submitting={state.salad.submitting}
+        error={state.salad.error}
+        submitted={state.salad.total !== null}
+        paidTotal={state.salad.total}
         emptyText="No salad items yet — head to the Salad Corner to add some."
-        payment={{ qris: true, qrisPath: '/images/payment/qris-zac.png', name: 'Zack', number: 'MANDIRI: 1300028849506' }}
+        payment={SALAD_PAYMENT}
       />
       <Section
         title="Coffee Corner"
         lines={coffeeCart}
         onRemove={removeCoffeeLine}
         onSubmit={submitCoffee}
-        submitted={submittedCoffee}
+        submitting={state.coffee.submitting}
+        error={state.coffee.error}
+        submitted={state.coffee.total !== null}
+        paidTotal={state.coffee.total}
         emptyText="No drinks yet — head to the Coffee Corner to add some."
-        payment={{
-          qris: false,
-          name: 'Vel',
-          banks: [
-            { bank: 'BANK BCA', number: '7940423851' },
-            { bank: 'BANK JAGO', number: '106747962160' },
-            { bank: 'BANK MANDIRI', number: '1300028849340' },
-          ],
-        }}
+        payment={COFFEE_PAYMENT}
       />
     </div>
   )

@@ -1,4 +1,11 @@
-export const COFFEE_OPTION_DELTAS = { milk: 3000, chocolate: 1000, foamy: 0, condensedMilk: 2000 }
+// ALL OPTIONS AND SAUCES
+export const DEFAULT_SAUCES = ['Italian', 'Wijen', 'Thousand Island']
+export const DEFAULT_COFFEE_OPTIONS = [
+  { name: 'Milk', price: 3000 },
+  { name: 'Chocolate', price: 1000 },
+  { name: 'Foamy', price: 0 },
+  { name: 'Condensed Milk', price: 2000 },
+]
 
 // "stock: null" means unlimited. "image: null" falls back to the icon tile
 // in ItemCard until you add a real photo (see README > Adding item photos).
@@ -8,7 +15,6 @@ export const seedSaladItems = [
     name: 'Salad Reguler',
     price: 12000,
     category: 'salad',
-    sauces: ['Italian', 'Wijen', 'Thousand Island'],
     stock: null,
     image: null,
   },
@@ -17,7 +23,6 @@ export const seedSaladItems = [
     name: 'Salad Ayam',
     price: 15000,
     category: 'salad',
-    sauces: ['Italian', 'Wijen', 'Thousand Island'],
     stock: null,
     image: null,
   },
@@ -26,7 +31,6 @@ export const seedSaladItems = [
     name: 'Salad Campur',
     price: 15000,
     category: 'salad',
-    sauces: ['Italian', 'Wijen', 'Thousand Island'],
     stock: null,
     image: null,
   },
@@ -35,7 +39,6 @@ export const seedSaladItems = [
     name: 'Salad Campur Wareg',
     price: 18000,
     category: 'salad',
-    sauces: ['Italian', 'Wijen', 'Thousand Island'],
     stock: null,
     image: null,
   },
@@ -44,7 +47,6 @@ export const seedSaladItems = [
     name: 'Singkong Thailand',
     price: 10000,
     category: 'snack',
-    sauces: null,
     stock: null,
     image: null,
   },

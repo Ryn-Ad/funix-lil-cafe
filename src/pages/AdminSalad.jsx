@@ -1,60 +1,29 @@
 import { Trash2 } from 'lucide-react'
-import { useCollection, useDoc } from '../services/localStore'
+import { useCollection } from '../services/localStore'
 import { groupOrdersByDate } from '../utils/orderGrouping'
 import SectionDivider from '../components/SectionDivider'
+import CornerStatusCard from '../components/CornerStatusCard'
 
 function formatTime(ts) {
   return new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
-// Today at a given hour, in the browser's local time — used for the
-// manual override button so it matches the 12:00–20:00 schedule that
-// api/cron/open-salad.js and api/cron/close-salad.js run automatically.
-function todayAt(hour, minute = 0) {
-  const d = new Date()
-  d.setHours(hour, minute, 0, 0)
-  return d.getTime()
-}
-
 export default function AdminSalad() {
-  const { value: settings, save } = useDoc('saladCornerSettings', { isOpen: false, closesAt: 0 })
   const orders = useCollection('saladOrders')
-
-  const isOpen = settings.isOpen && Date.now() < settings.closesAt
-  const closeTime = isOpen ? formatTime(settings.closesAt) : null
-
-  const openCorner = () => save({ isOpen: true, closesAt: todayAt(20, 0) })
-  const closeCorner = () => save({ isOpen: false })
   const togglePaid = (id, current) => orders.update(id, { paid: !current })
-
+  
   const dateGroups = groupOrdersByDate(orders.items)
 
   return (
     <div className="max-w-3xl mx-auto px-4 md:px-8 py-6">
       <h1 className="text-xl font-semibold mb-4">Salad Corner &mdash; Admin</h1>
 
-      <div className="card p-5 mb-6 flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <p className="text-sm font-medium">{isOpen ? `Open — Closes in ~${closeTime}h` : 'Closed'}</p>
-          <p className="text-xs mt-1" style={{ color: 'var(--color-muted)' }}>
-            Open automatically at 12:00, Closes at 20:00 &mdash; buttons here are for manual override only
-          </p>
-        </div>
-        {isOpen ? (
-          <button onClick={closeCorner} className="btn-outline text-xs px-4 py-2">
-            Close now
-          </button>
-        ) : (
-          <button onClick={openCorner} className="btn-primary text-xs px-4 py-2">
-            Open until 20:00
-          </button>
-        )}
-      </div>
+      <CornerStatusCard corner="salad" />
 
       <h2 className="text-sm font-medium mb-3">Orders ({orders.items.length})</h2>
       {dateGroups.length === 0 && (
         <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-          no orders yet.
+          No orders yet.
         </p>
       )}
         {dateGroups.map((group) => (

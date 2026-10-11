@@ -14,7 +14,6 @@ import {
   setDoc,
   getDocs,
   onSnapshot,
-  runTransaction,
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
 
@@ -46,7 +45,9 @@ export function useCollection(key) {
   
   const remove = useCallback((id) => deleteDoc(doc(db, key, id)), [key])
   
-  return { items, add, update, remove, loading }
+  const set = useCallback((id, data) => setDoc(doc(db, key, id), data, { merge: true }), [key])
+  
+  return { items, add, update, remove, set, loading }
 }
 
 // One doc = one useDoc(key) call, stored at settings/{key} — e.g.
@@ -89,15 +90,4 @@ export async function seedIfEmpty(key, seedData) {
   const snapshot = await getDocs(collection(db, key))
   if (!snapshot.empty) return
   await Promise.all(seedData.map(({ id, ...rest }) => setDoc(doc(db, key, id), rest)))
-}
-
-export async function decrementStock(collectionKey, itemId) {
-  const ref = doc(db, collectionKey, itemId)
-  await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref)
-    if (!snap.exists()) return
-    const current = snap.data().stock
-    if (typeof current !== 'number') return
-    tx.update(ref, { stock: Math.max(0, current - 1) })
-  })
 }

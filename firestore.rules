@@ -2,26 +2,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function role() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
-    }
     function isSignedIn() {
       return request.auth != null;
     }
-
-    // A public, narrowly-scoped exception used only for stock decrements:
-    // lets anyone (including a signed-out customer placing an order)
-    // decrease — never increase or otherwise touch — an item's stock
-    // field, and nothing else on the document. This is what makes
-    // automatic stock decrementing on order submission possible without
-    // requiring every customer to have an account.
-    function isStockOnlyDecrease() {
-      let before = resource.data;
-      let after = request.resource.data;
-      return after.diff(before).affectedKeys().hasOnly(['stock'])
-        && after.stock is number
-        && after.stock >= 0
-        && after.stock <= before.stock;
+    function role() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    // True for the owner, or for the named admin role.
+    function hasRole(adminRole) {
+      return isSignedIn() && role() in ['owner', adminRole];
+    }
+    function isOwner() {
+      return isSignedIn() && role() == 'owner';
     }
 
     // Ryn, Zac, Vel — one doc per admin, created by hand in the console.
@@ -30,40 +22,50 @@ service cloud.firestore {
       allow write: if false; // edit roles by hand in the console
     }
 
-    // Menu items: anyone can read. Admins can create/edit/delete freely;
-    // anyone can additionally make a stock-only decrease (see above).
-    match /saladItems/{itemId} {
-      allow read: if true;
-      allow create, delete: if isSignedIn() && role() in ['owner', 'salad_admin'];
-      allow update: if (isSignedIn() && role() in ['owner', 'salad_admin']) || isStockOnlyDecrease();
+    // ---- Menus: anyone can read, only that corner's admin (or Ryn) edits.
+    // Stock is changed by the server when an order is placed (the Admin
+    // SDK bypasses these rules), so customers need no write access at all.
+    match /saladItems/{id}    { allow read: if true; allow write: if hasRole('salad_admin'); }
+    match /saladSauces/{id}   { allow read: if true; allow write: if hasRole('salad_admin'); }
+    match /coffeeItems/{id}   { allow read: if true; allow write: if hasRole('coffee_admin'); }
+    match /coffeeOptions/{id} { allow read: if true; allow write: if hasRole('coffee_admin'); }
+
+    // ---- Private money data: Ryn only. Capital and owners are never
+    // readable by customers or by the coffee admin.
+    match /coffeeCosts/{id} {
+      allow read, write: if isOwner();
     }
-    match /coffeeItems/{itemId} {
-      allow read: if true;
-      allow create, delete: if isSignedIn() && role() in ['owner', 'coffee_admin'];
-      allow update: if (isSignedIn() && role() in ['owner', 'coffee_admin']) || isStockOnlyDecrease();
+    // Per-order snapshot of revenue, capital and owner shares. Written
+    // only by the server (api/submit-order.js); Ryn can read it.
+    match /coffeeFinancials/{id} {
+      allow read: if isOwner();
+      allow write: if false;
     }
 
-    // Salad Corner open/close + timer.
+    // ---- Open/closed overrides.
     match /settings/saladCorner {
       allow read: if true;
-      allow write: if isSignedIn() && role() in ['owner', 'salad_admin'];
+      allow write: if hasRole('salad_admin');
+    }
+    match /settings/coffeeCorner {
+      allow read: if true;
+      allow write: if hasRole('coffee_admin');
     }
 
-    // Orders: anyone (even a customer with no account) can create one,
-    // but only the matching admin/owner can read the list or edit it
-    // (e.g. to flip the paid switch).
+    // ---- Orders: created ONLY by the server (api/submit-order.js), which
+    // checks opening hours, prices and stock. Admins read, mark paid, delete.
     match /saladOrders/{orderId} {
-      allow create: if true;
-      allow read, update, delete: if isSignedIn() && role() in ['owner', 'salad_admin'];
+      allow create: if false;
+      allow read, update, delete: if hasRole('salad_admin');
     }
     match /coffeeOrders/{orderId} {
-      allow create: if true;
-      allow read, update, delete: if isSignedIn() && role() in ['owner', 'coffee_admin'];
+      allow create: if false;
+      allow read, update, delete: if hasRole('coffee_admin');
     }
 
-    // Ryn's private coffee recipes — never exposed to the Coffee Corner.
+    // Ryn's private coffee recipes.
     match /coffeeRecipes/{recipeId} {
-      allow read, write: if isSignedIn() && role() == 'owner';
+      allow read, write: if isOwner();
     }
   }
 }

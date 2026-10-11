@@ -1,20 +1,18 @@
-const OPTIONS = [
-  { key: 'milk', label: 'Milk', delta: 3000 },
-  { key: 'chocolate', label: 'Chocolate', delta: 1000 },
-  { key: 'foamy', label: 'Foamy', delta: 0 },
-    { key: 'condensedMilk', label: 'Condensed Milk', delta: 2000 },
-]
+function priceTag(price) {
+  if (!price) return ''
+  return price % 1000 === 0 ? ` +${price / 1000}k` : ` +${price.toLocaleString('id-ID')}`
+}
 
-export default function CoffeeOptions({ values, onToggle }) {
+export default function CoffeeOptions({ options, values, onToggle }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {OPTIONS.map(({ key, label, delta }) => {
-        const active = !!values[key]
+      {options.map(({ id, name, price }) => {
+        const active = !!values[id]
         return (
           <button
-            key={key}
+            key={id}
             type="button"
-            onClick={() => onToggle(key)}
+            onClick={() => onToggle(id)}
             className="pill text-[11px] px-3 py-1.5 border"
             style={{
               borderColor: active ? 'var(--color-accent)' : 'var(--color-border)',
@@ -22,8 +20,8 @@ export default function CoffeeOptions({ values, onToggle }) {
               color: active ? 'var(--color-accent)' : 'var(--color-muted)',
             }}
           >
-            {label}
-            {delta > 0 ? ` +${delta / 1000}k` : ''}
+            {name}
+            {priceTag(price)}
           </button>
         )
       })}

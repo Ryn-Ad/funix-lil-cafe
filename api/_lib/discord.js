@@ -24,6 +24,24 @@ async function discordFetch(path, options = {}) {
   return res.status === 204 ? null : res.json()
 }
 
+// Discord rejects messages over 2000 characters, so long messages (like
+// the weekly profit report) are split on line breaks and sent in order.
+export function splitMessage(text, limit = 1900) {
+  const chunks = []
+  let current = ''
+  for (const line of text.split('\n')) {
+    const piece = line.length > limit ? line.slice(0, limit) : line
+    if (current && current.length + piece.length + 1 > limit) {
+      chunks.push(current)
+      current = piece
+    } else {
+      current = current ? `${current}\n${piece}` : piece
+    }
+  }
+  if (current) chunks.push(current)
+  return chunks
+}
+
 // Opens (or reuses) a DM channel with a user, then sends the message.
 // Requires the bot to share at least one server with that user —
 // Discord blocks bots from DMing people they have no server in common
@@ -33,10 +51,12 @@ async function sendDiscordDM(userId, content) {
     method: 'POST',
     body: JSON.stringify({ recipient_id: userId }),
   })
-  await discordFetch(`/channels/${channel.id}/messages`, {
-    method: 'POST',
-    body: JSON.stringify({ content }),
-  })
+  for (const chunk of splitMessage(content)) {
+    await discordFetch(`/channels/${channel.id}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content: chunk }),
+    })
+  }
 }
 
 // Sends the same message to several people. One person's failure (DMs
