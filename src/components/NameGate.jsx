@@ -9,7 +9,7 @@ function Logo() {
       src="/images/logo.png"
       alt=""
       onError={() => setHidden(true)}
-      className="w-16 h-16 object-contain mx-auto mb-1"
+      className="w-25 h-25 object-contain mx-auto mb-1"
     />
   )
 }
