@@ -10,7 +10,7 @@ export const PAYMENTS = {
   },
   coffee: {
     name: 'Vel',
-    qrisPath: '/images/payment/qris-vel.png',
+    qrisPath: '/images/payment/qris-vel.jpg',
     banks: [
       { bank: 'BANK BCA', number: '7940423851' },
       { bank: 'BANK JAGO', number: '106747962160' },
