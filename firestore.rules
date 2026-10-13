@@ -53,14 +53,22 @@ service cloud.firestore {
     }
 
     // ---- Orders: created ONLY by the server (api/submit-order.js), which
-    // checks opening hours, prices and stock. Admins read, mark paid, delete.
+    // checks opening hours, prices and stock. Admins list, mark paid, delete.
+    //
+    // `get` (one order by its id) is open so a customer's "your orders" list
+    // can show live paid status. Order ids are random 20-character strings
+    // that only exist on the buyer's own device and the admin screens, so
+    // they can't be guessed — and `list` (browsing ALL orders) stays
+    // admin-only. An order holds a name, items and a total; never capital.
     match /saladOrders/{orderId} {
       allow create: if false;
-      allow read, update, delete: if hasRole('salad_admin');
+      allow get: if true;
+      allow list, update, delete: if hasRole('salad_admin');
     }
     match /coffeeOrders/{orderId} {
       allow create: if false;
-      allow read, update, delete: if hasRole('coffee_admin');
+      allow get: if true;
+      allow list, update, delete: if hasRole('coffee_admin');
     }
 
     // Ryn's private coffee recipes.

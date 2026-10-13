@@ -1,6 +1,7 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useUser } from './context/UserContext'
 import NameGate from './components/NameGate'
+import ErrorBoundary from './components/ErrorBoundary'
 import NavBar from './components/NavBar'
 import BottomNav from './components/BottomNav'
 import Home from './pages/Home'
@@ -19,6 +20,7 @@ function RequireRole({ allow, role, children }) {
 
 export default function App() {
   const { name, role, loading } = useUser()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -36,6 +38,7 @@ export default function App() {
     <div className="min-h-screen pb-16 sm:pb-0">
       <NavBar />
       <main>
+        <ErrorBoundary key={location.pathname}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/salad" element={<SaladCorner />} />
@@ -75,6 +78,7 @@ export default function App() {
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </ErrorBoundary>
       </main>
       <BottomNav />
     </div>
