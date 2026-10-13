@@ -50,7 +50,7 @@ function Section({ title, lines, onRemove, onSubmit, submitting, error, emptyTex
           ))}
         </div>
         <div className="flex items-center justify-between pt-3 mb-4" style={{ borderTop: '1px solid var(--color-border)' }}>
-          <span className="text-sm font-medium">total</span>
+          <span className="text-sm font-medium">Total</span>
           <span className="text-sm font-medium" style={{ color: 'var(--color-accent)' }}>
             Rp {total.toLocaleString('id-ID')}
           </span>
@@ -79,7 +79,7 @@ export default function Cart() {
 
   const patch = (corner, changes) => setState((s) => ({ ...s, [corner]: { ...s[corner], ...changes } }))
 
-  const send = async (corner, ChartColumnIncreasing, lines, clear) => {
+  const send = async (corner, cartLines, lines, clear) => {
     patch(corner, { submitting: true, error: '' })
     try {
       const result = await submitOrder({ corner, customerName: name, lines })

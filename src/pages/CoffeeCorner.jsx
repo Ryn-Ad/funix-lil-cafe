@@ -104,7 +104,7 @@ export default function CoffeeCorner() {
             border: status.isOpen ? 'none' : '1px solid var(--color-border)',
           }}
         >
-          {status.isOpen ? `Ppen until ${status.closes}` : 'Closed'}
+          {status.isOpen ? `Open until ${status.closes}` : 'Closed'}
         </span>
       </div>
 
